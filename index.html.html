@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>ToDoアプリ</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .header {
+            background-color: #007aff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .container {
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+        input[type="text"]:focus {
+            border-color: #007aff;
+        }
+        button {
+            padding: 15px 20px;
+            background-color: #007aff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:active { background-color: #005bb5; }
+        
+        .task-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .task-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+        .task-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+            cursor: pointer;
+            user-select: none; /* テキスト選択を無効化 */
+        }
+        .task-text {
+            font-size: 16px;
+            word-break: break-all;
+        }
+        /* 完了したタスクのスタイル */
+        .completed .task-text {
+            text-decoration: line-through;
+            color: #888;
+        }
+        .checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #007aff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .completed .checkbox {
+            background-color: #007aff;
+        }
+        .completed .checkbox::after {
+            content: "✓";
+            color: white;
+            font-size: 14px;
+        }
+        .delete-btn {
+            background-color: #ff3b30;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+        .delete-btn:active { background-color: #c92a20; }
+    </style>
+</head>
+<body>
+
+    <div class="header">タスク管理</div>
+    
+    <div class="container">
+        <div class="input-group">
+            <input type="text" id="taskInput" placeholder="新しいタスクを入力...">
+            <button onclick="addTask()">追加</button>
+        </div>
+        <ul class="task-list" id="taskList">
+            <!-- タスクがここに追加されます -->
+        </ul>
+    </div>
+
+<script>
+    // 端末に保存されているタスクを読み込む（なければ空の配列）
+    let tasks = JSON.parse(localStorage.getItem('myTasks')) || [];
+
+    // 画面にタスクを描画する関数
+    function renderTasks() {
+        const list = document.getElementById('taskList');
+        list.innerHTML = '';
+
+        tasks.forEach((task, index) => {
+            const li = document.createElement('li');
+            li.className = `task-item ${task.completed ? 'completed' : ''}`;
+            
+            li.innerHTML = `
+                <div class="task-content" onclick="toggleTask(${index})">
+                    <div class="checkbox"></div>
+                    <span class="task-text">${escapeHTML(task.text)}</span>
+                </div>
+                <button class="delete-btn" onclick="deleteTask(${index})">削除</button>
+            `;
+            list.appendChild(li);
+        });
+
+        // データを保存
+        saveTasks();
+    }
+
+    // タスクを追加する関数
+    function addTask() {
+        const input = document.getElementById('taskInput');
+        const text = input.value.trim();
+        
+        if (text !== '') {
+            tasks.push({ text: text, completed: false });
+            input.value = '';
+            renderTasks();
+        }
+    }
+
+    // タスクの完了状態を切り替える関数
+    function toggleTask(index) {
+        tasks[index].completed = !tasks[index].completed;
+        renderTasks();
+    }
+
+    // タスクを削除する関数
+    function deleteTask(index) {
+        if (confirm('このタスクを削除しますか？')) {
+            tasks.splice(index, 1);
+            renderTasks();
+        }
+    }
+
+    // データを端末(localStorage)に保存する関数
+    function saveTasks() {
+        localStorage.setItem('myTasks', JSON.stringify(tasks));
+    }
+
+    // HTMLの特殊文字をエスケープする安全対策
+    function escapeHTML(str) {
+        return str.replace(/[&<>'"]/g, 
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
+
+    // エンターキーでも追加できるようにする
+    document.getElementById('taskInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            addTask();
+        }
+    });
+
+    // 初期表示
+    renderTasks();
+</script>
+</body>
+</html>
